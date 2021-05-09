@@ -1,12 +1,17 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 )
 
+type Msg struct {
+	url     string
+	isValid string // "FAILED" , "SUCCEED"
+}
+
 func main() {
+	c := make(chan Msg)
 	urls := []string{
 		"https://www.google.com",
 		"https://www.youtube.com",
@@ -21,16 +26,23 @@ func main() {
 	}
 
 	for _, url := range urls {
-		IsValid(url)
+		go IsValid(url, c)
+	}
+
+	for i := 0; i < len(urls); i++ {
+		fmt.Println(<-c)
 	}
 }
 
 // Check a url
-func IsValid(url string) error {
+func IsValid(url string, c chan Msg) {
 	fmt.Println("Checking " + url)
 	resp, err := http.Get(url)
+	msg := Msg{}
+	msg.url = url
 	if err != nil || resp.StatusCode >= 400 {
-		return errors.New(url + "is not valid")
+		msg.isValid = "FAILED"
 	}
-	return nil
+	msg.isValid = "SUCCEED"
+	c <- msg
 }
